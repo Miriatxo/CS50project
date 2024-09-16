@@ -1,0 +1,425 @@
+{% extends "layout.html" %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block head %}
+
+<style>
+    #grid-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 100px 120px 400px 500px 600px;
+        row-gap: 100px;
+    }
+
+    #title {
+        grid-area: 1 / 1 / 2 / 3;
+        background-color: #292929;
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #filters {
+        grid-area: 2 / 1 / 3 / 3;
+        display: grid;
+        grid-template-rows: auto auto auto;
+        justify-content: center;
+        background-color: #292929;
+        width: 80vw;
+        padding: 0 50px;
+        margin: 0 auto; /* To center the div horizontally */
+        margin-top: -60px;
+    }
+
+    #filters form {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        column-gap: 40px;
+        row-gap: 30px;
+        margin-top: -10px;
+    }
+
+    #filters h5 {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 15px;
+        padding-top: 15px;
+    }
+
+    #filters form .wrapper {
+        display: flex;
+        flex-direction: row; /* Align label and input horizontally */
+        align-items: center; /* Align label and input vertically */
+        gap: 15px;
+    }
+
+    .wrapper input, .wrapper select {
+        width: 15vw;
+    }
+
+    #filters form button {
+        grid-column: 1 / -1; /* Span the button across all columns */
+        justify-self: center;
+        padding: 10px 20px;
+        background-color: #00ffc1;
+        border: none;
+        font-size: 16px;
+        font-weight: bold;
+        height: 30px;
+        width: auto;
+        line-height: 0.1;
+        margin-bottom: 12px;
+    }
+
+    #line-container {
+        grid-area: 4 / 1 / 5 / 3;
+        margin: 80px;
+        margin-top: 120px;
+        margin-bottom: 30px;
+        width: 90%;
+        height: 450px;
+        background-color: rgba(41, 41, 41, 0.5);
+        padding-top: 40px;
+        padding-bottom: 40px;
+        padding-left: 30px;
+    }
+
+    #bar-container {
+        grid-area: 3 / 2 / 4 / 3;
+        margin-right: 60px;
+        margin-left: 60px;
+        padding-right: 30px;
+        padding-left: 30px;
+    }
+
+    #summary {
+        grid-area: 3 / 1 / 4 / 2;
+        background-color: #292929;
+        font-size: 18px;
+        width: 28vw;
+        height: 25vw;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin-left: 100px;
+        margin-top: 100px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .positive {
+        color: #20f20c;
+    }
+
+    .negative {
+        color: #e60000;
+    }
+
+    #categories-info {
+        grid-area: 5 / 1 / 6 / 2;
+        margin-top: 170px;
+    }
+
+    #doughnut-container {
+        grid-area: 5 / 2 / 6 / 3;
+        margin-top: 10px;
+        margin-bottom: 150px;
+        padding: 60px;
+        padding-left: 30px;
+        padding-right: 30px;
+    }
+
+    .p {
+        font-size: 18px;
+        color: #00ffc1;
+    }
+</style>
+
+
+{% endblock %}
+
+{% block main %}
+
+<div id="grid-layout">
+    <div id="title" class="border rounded custom-shadow">
+        <strong>Analytics<br><span style="color: #00ffc1">{{ formatted_start_date }} - {{ formatted_end_date }}</span></strong>
+    </div>
+
+    <div id="filters" class="border rounded custom-shadow">
+        <h5><strong>Filter by Date and/or Category:</strong></h5><br>
+        <form method="GET" action="/analytics">
+            <div class="wrapper">
+                <label for="start_date">Start Date:</label>
+                <input type="date" id="start_date" name="start_date" value="{{ start_date[:10] }}">
+            </div>
+
+            <div class="wrapper">
+                <label for="end_date">End Date:</label>
+                <input type="date" id="end_date" name="end_date" value="{{ end_date[:10] }}">
+            </div>
+
+            <div class="wrapper">
+                <label for="category">Category:</label>
+                <select id="category" name="category">
+                    <option value="">All Categories</option>
+                    <option value="Housing" {% if category=='Housing' %}selected{% endif %}>Housing</option>
+                    <option value="Bills & Utilities" {% if category=='Bills & Utilities' %}selected{% endif %}>Bills &
+                    Utilities</option>
+                    <option value="Food" {% if category=='Food' %}selected{% endif %}>Food</option>
+                    <option value="Transportation" {% if category=='Transportation' %}selected{% endif %}>Transportation
+                    </option>
+                    <option value="Shopping" {% if category=='Shopping' %}selected{% endif %}>Shopping</option>
+                    <option value="Entertainment" {% if category=='Entertainment' %}selected{% endif %}>Entertainment
+                    </option>
+                    <option value="Others" {% if category=='Others' %}selected{% endif %}>Others</option>
+                    <option value="" disabled selected>Select a category</option>
+                </select>
+            </div>
+
+            <button type="submit">Apply Filters</button>
+
+        </form>
+    </div>
+
+    <div id="bar-container">
+        {% if has_data %}
+            <h5><strong><span style="color: #ccc">Total Income vs Total Expenses</span></strong></h5><br><br><br>
+            <canvas id="analyticsChart"></canvas>
+        {% else %}
+            <br><br><br><br><p class="p">No expenses or income to display for {{ formatted_start_date }} - {{ formatted_end_date }}.</p>
+        {% endif %}
+    </div>
+
+    <div id="summary">
+        <p><strong style="font-size: 22px;">Summary</strong></p><br>
+        <p><strong>Total Income:</strong> {{ income_total }} €</p>
+        <p><strong>Total Expenses:</strong> {{ expense_total }} €</p>
+        <p id="net-balance"><strong>Net Balance:</strong> {{ formatted_balance }} €</p>
+    </div>
+
+    <div id="line-container" class="border rounded custom-shadow">
+            <canvas id="lineChart"></canvas>
+    </div>
+
+    <div id="doughnut-container">
+            <canvas id="doughnutChart"></canvas>
+    </div>
+
+    <div id="categories-info">
+      {% if expenses %}
+        {% if selected_category %}
+            <br><br><br>
+            <p><strong style="font-size: 19px;">Monthly {{ selected_category }} Expense Trends:</strong></p><br>
+            <p><strong>Highest</strong> monthly expense: {{ highest_expense }} €</p>
+            <p><strong>Lowest</strong> monthly expense: {{ lowest_expense }} €</p>
+            <p><strong>Average</strong> monthly expense: {{ average_expense }} €</p>
+        {% else %}
+            <p style="font-size: 20px"><strong>Expenses by Category</strong></p><br>
+            {% for category in categories %}
+                <p><strong>{{ category['category'] }}:</strong> {{ "%.2f" | format(category['total']) }} €</p>
+            {% endfor %}
+        {% endif %}
+      {% endif %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
+
+<script>
+    // Net Balance Colors
+    document.addEventListener("DOMContentLoaded", function() {
+        const balanceElement = document.querySelector("#net-balance");
+        let balanceText = balanceElement.textContent;
+        console.log(balanceText); // Check if this outputs the correct text
+
+        // Extract the numeric part of the balance
+        balanceText = balanceText.split(":")[1].replace("€", "").trim();
+        const balance = parseFloat(balanceText);
+
+        if (balance < 0) {
+            balanceElement.classList.add("negative");
+        } else {
+            balanceElement.classList.add("positive");
+        }
+    });
+
+    // Bar Chart
+    const ctx = document.getElementById('analyticsChart').getContext('2d');
+    const analyticsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Total Income', 'Total Expenses'],
+            datasets: [{
+                label: 'Total',
+                data: [{{ income_total }}, {{ expense_total }}],
+                backgroundColor: ['#10a5f5', '#FFEA00'],
+                borderColor: ['black', 'black'],
+                borderWidth: 0.5
+            }]
+        },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false,
+            }
+        },
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: {
+                    font: {
+                        size: 16 // Increase this value to make the labels bigger
+                    }
+                }
+            },
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+    });
+
+    // Line Chart
+    const allDates = {{ all_dates_str|tojson }};
+    const incomeValuesAligned = {{ income_values_aligned|tojson }};
+    const expenseValuesAligned = {{ expense_values_aligned|tojson }};
+
+    const lineChartData = {
+        labels: allDates,
+        datasets: [
+            {
+                label: 'Incomes',
+                data: incomeValuesAligned,
+                borderColor: '#3e95cd',
+                fill: false
+            },
+            {
+                label: 'Expenses',
+                data: expenseValuesAligned,
+                borderColor: '#ffcc00',
+                fill: false
+            }
+        ]
+    };
+
+    const lineChart = document.getElementById('lineChart').getContext('2d');
+
+    new Chart(lineChart, {
+        type: 'line',
+        data: lineChartData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Incomes and Expenses by Date',
+                    align: 'right',
+                    font: {
+                        size: 20
+                    },
+                    padding: {
+                        top: 20,
+                        bottom: 60     // Adjust padding between title and legend
+                    },
+                    color: '#ffffff'
+                },
+                legend: {
+                    display: true,
+                    position: 'right',
+                    labels: {
+                        padding: 30,   // Increase space between legend items
+                        boxWidth: 20,  // Adjust the size of the color boxes
+                        font: {
+                            size: 16   // Adjust the font size of the legend labels
+                        }
+                    },
+                    padding: {
+                        top: 20,   // Increase space above the legend
+                        bottom: 20, // Increase space below the legend
+                    },
+                }
+            },
+            layout: {
+                padding: {
+                    right: 30  // Increase the padding on the right side to add more space between the chart and legend
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'day'
+                    }
+                },
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Doughnut Chart
+    document.addEventListener('DOMContentLoaded', function() {
+        const doughnutCtx = document.getElementById('doughnutChart').getContext('2d');
+
+        // Dynamically set the chart title
+        const chartTitle = "{{ selected_category + ' Expenses per Month' if selected_category else 'Expenses by Category' }}";
+
+        const doughnutChart = new Chart(doughnutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ category_names|tojson if not selected_category else expense_months|tojson }},
+                datasets: [{
+                    data: {{ category_totals|tojson if not selected_category else expense_totals_by_month|tojson }},
+                    backgroundColor: [
+                        '#ed0707', '#ed0767', '#b307ed', '#5407ed', '#3e95cd', '#ffcc00', '#ed6707'
+                    ],
+                    borderColor: 'black',
+                    borderWidth: 0.5
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: chartTitle,
+                        color: '#ccc',
+                        font: {
+                            size: 20,
+                        }
+                    },
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#ccc',
+                            padding: 20  // Increase padding between legend items
+                        }
+                    }
+                },
+                layout: {
+                    padding: {
+                        right: 50,  // Add space between the doughnut chart and the legend
+                    }
+                }
+            }
+        });
+    });
+
+
+    // Debug
+    console.log("JavaScript is running");
+    console.log("Categories: ", {{ categories|tojson }});
+    console.log("Category Totals: ", {{ category_totals|tojson }});
+    console.log("Expenses: ", {{ expenses|tojson }});
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,243 @@
+{% extends "layout.html" %}
+
+{% block title %}Expenses{% endblock %}
+
+{% block head %}
+
+    <style>
+
+        #grid-layout {
+            display: grid;
+            grid-template-columns: 50px auto auto 50px;
+            grid-template-rows: 80px 450px 80px auto;
+            row-gap: 10px;
+        }
+
+        #title {
+            grid-area: 1 / 2 / 2 / 4;
+            font-size: 24px;
+            background-color: #292929;
+        }
+
+        .title-text {
+            display: inline-block;
+            transform: translateY(-16px); /* Move the letters without changing the size of the div */
+        }
+
+        .pie-info {
+            grid-area: 2 / 2 / 3 / 3;
+            text-align: left;
+            margin-top: 35px;
+            padding: 35px;
+            padding-left: 190px;
+
+        }
+
+        .pie-chart-container {
+            grid-area: 2 / 3 / 3 / 4;
+            margin-left: 150px;
+        }
+
+        #pieChart {
+            width: 150px;
+            height: 150px;
+            padding: 30px;
+        }
+
+        #expenses_title_sort {
+            grid-area: 3 / 2 / 4 / 4;
+            font-size: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background-color: #292929;
+        }
+
+        #expenses_title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-left: 25px;
+        }
+
+        #expenses_sort select {
+            margin-right: 10px;
+            margin-top: 10px;
+            height: 35px;
+            border: none;
+        }
+
+        #expenses_sort button {
+            margin-right: 30px;
+            height: 35px;
+            padding-bottom: 30px;
+            background-color: #00ffc1;
+            font-weight: bold;
+            border: none;
+        }
+
+        #expenses_sort select,
+        #expenses_sort button {
+            padding: 8px;
+            font-size: 16px;
+            height: 38px;
+            width: 110px;
+        }
+
+        #expenses_table {
+            grid-area: 4 / 2 / 5 / 4;
+            max-height: 450px;
+            height: auto;
+            overflow-y: auto;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            background-color: white; /* or any other background color */
+            z-index: 1;
+        }
+
+        p {
+            font-size: 18px;
+            color: #00ffc1;
+        }
+
+    </style>
+
+{% endblock %}
+
+{% block main %}
+
+        <div id="grid-layout">
+            <div id="title" class="border rounded custom-shadow">
+                <span class="title-text"><br><strong>{{ formatted_month }} <span style="color: #00ffc1">Expenses</span></strong><br><br></span>
+            </div>
+
+            <div class="pie-info">
+                <h5><strong><span style="color: #00ffc1">Expense Total</span>:</strong> {{ expense_total }} €</h5><br>
+                {% for category, total in categories.items() %}
+                    <p><strong>{{ category }}:</strong> {{ "%.2f" | format(total) }} €</p>
+                {% endfor %}
+            </div>
+
+            <div class="pie-chart-container">
+                {% if expenses %}
+                    <canvas id="pieChart"></canvas>
+                {% else %}
+                    <br><br><br><p>No expenses to display for {{ formatted_month }}.</p>
+                {% endif %}
+            </div>
+
+            <div id="expenses_title_sort" class="border rounded custom-shadow">
+                <div id="expenses_title">
+                    <strong>{{ formatted_month }} <span style="color: #00ffc1">Expense Total</span>:</strong>&nbsp;{{ expense_total }} €
+                </div>
+
+                <div id="expenses_sort">
+                    <form method="get" action="/view_expenses">
+                        <select name="order_by">
+                            <option value="date">Date</option>
+                            <option value="category">Category</option>
+                        </select>
+                        <button type="submit">Sort</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="expenses_table" class="border rounded custom-shadow">
+              {% if expenses %}
+                <table class="table table-dark table-striped table-bordered">
+                    <thead>
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col">Amount</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Comment</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                            <tr>
+                                <td>{{ expense.date }}</td>
+                                <td>{{ expense.amount }} €</td>
+                                <td>{{ expense.description }}</td>
+                                <td>{{ expense.comment }}</td>
+                                <td>{{ expense.category }}</td>
+                                <td>
+                                    <form method="POST" action="/delete_expense/{{ expense.id }}" style="display:inline;">
+                                        <input type="hidden" name="source" value="view_expenses">
+                                        <button type="submit">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+              {% else %}
+                <p>No expenses recorded for {{ formatted_month }}.</p>
+              {% endif %}
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+        <script>
+            const pieChartData = {
+                labels: [{% for category in categories.keys() %}'{{ category|safe }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                datasets: [{
+                    data: [{% for total in categories.values() %}{{ total }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    backgroundColor: ['#ed0707', '#ed0767', '#b307ed', '#5407ed', '#3e95cd', '#ffcc00', '#ed6707'],
+                    borderColor: 'black',
+                    borderWidth: 0.5
+                }]
+            };
+
+            const pieCtx = document.getElementById('pieChart').getContext('2d');
+
+            new Chart(pieCtx, {
+                type: 'pie',
+                data: pieChartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: 20 },
+                    elements: {
+                        arc: {
+                            borderWidth: 10
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Expenses by Category',
+                            color: '#ccc',
+                            font: {
+                                size: 24
+                            },
+                            padding: {
+                                bottom: 50  // Move the title upwards
+                            }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'right',
+                            labels: {
+                                color: '#ccc',
+                                boxWidth: 20,
+                                padding: 20,
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+        </script>
+
+{% endblock %}
