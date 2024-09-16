@@ -1,0 +1,39 @@
+body {
+    background-color: #191919;
+    color: white;
+}
+
+nav {
+    background-color: #292929;
+}
+
+nav a.nav-link {
+    color: white !important;
+}
+
+button, input, select {
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+    border: 1px solid #ccc;
+    border-radius: 0.25rem;
+}
+
+.custom-shadow {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.border {
+    border-width: 0 !important;
+}
+
+footer {
+    text-align: center;
+    padding: 10px;
+    font-size: 0.9em;
+    color: #d3d3d3;
+    font-weight: normal;
+    margin-bottom: 20px;
+}
+
+
+
+
